@@ -1,6 +1,8 @@
 # Procedural Terrain
 Demonstrates generating terrain meshes from noise. There's also tools for modifying the terrain and the terrain can be saved as a mesh asset and used in any projects. Includes FPS preview and simple tree placement.
 
+https://youtu.be/u4WbrUH0eaU
+
 Sources and code examples used in this project:
 - Simple perlin noise: https://docs.unity3d.com/ScriptReference/Mathf.PerlinNoise.html
 - Complex Perlin noise function: https://www.youtube.com/playlist?list=PLFt_AvWsXl0eBW2EiBtl_sxmDtSgZBxB3
