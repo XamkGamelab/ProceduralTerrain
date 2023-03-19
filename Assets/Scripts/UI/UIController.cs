@@ -7,6 +7,7 @@ public class UIController : MonoBehaviour
     //Buttons
     public Button ButtonGenerateTerrain;
     public Button ButtonGenerateFancierTerrain;
+    public Button ButtonAddTrees;
     public Button ButtonSaveAsAsset;
     //TMP InputFields
     public TMP_InputField InputFieldSize;
@@ -62,6 +63,8 @@ public class UIController : MonoBehaviour
     {
         ButtonGenerateTerrain.onClick.AddListener(() => HandleButtonGenerateTerrainClick(false));
         ButtonGenerateFancierTerrain.onClick.AddListener(() => HandleButtonGenerateTerrainClick(true));
+        //Add trees (4% chance of all suitable vertices, push 60cm to ground)
+        ButtonAddTrees.onClick.AddListener(() => ApplicationController.Instance.AddTrees(0.04f, .6f));
         ButtonSaveAsAsset.onClick.AddListener(HandleButtonSaveAsAsset);
 
         SliderBrushSize.onValueChanged.AddListener(value => ApplicationController.Instance.SetBrushSizeAndStrength(value, SliderBrushStrength.value));

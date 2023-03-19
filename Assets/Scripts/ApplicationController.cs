@@ -59,7 +59,7 @@ public class ApplicationController : SingletonMono<ApplicationController>
         {
             FPSPlayer.MouseLook.SetCursorLock(true);
             FPSPlayer.FirstPersonCamera.gameObject.SetActive(true);
-            FPSPlayer.transform.position = terrainHitpoint.Value;
+            FPSPlayer.transform.position = terrainHitpoint.Value + Vector3.up; //<-- 1m above the ground
             FPSPlayer.gameObject.SetActive(true);
         }
     }
@@ -84,6 +84,9 @@ public class ApplicationController : SingletonMono<ApplicationController>
 
     public Texture2D GenerateTerrainAndNoiseTexture(int size, float height, float noiseScale, bool smooth, bool plateau, int octaves = 4, float lacunarity = 3f, bool withOctaves = false)
     {
+        //Destroy previous trees when generating new terrain        
+        DestroyTrees();
+
         //Randomize seed, offset and octaves to produce different kinds of noise
         Vector2 offset = new Vector2(Random.Range(0f, 10f), Random.Range(0f, 10f));
         int seed = Random.Range(0, 10000);
@@ -107,34 +110,46 @@ public class ApplicationController : SingletonMono<ApplicationController>
         if (!smooth)
             TerrainGenerator.RemoveSharedVertices(currentTerrainMeshGO.GetComponent<MeshFilter>().sharedMesh);
 
-        
-        AddTrees(.1f, .6f);
-
         return texture;
     }
 
     public void AddTrees(float addPercentualRandomChance, float pushToGroundDistance)
     {
-        GeneratedTrees.ForEach(treeObject => DestroyImmediate(treeObject));
-        GeneratedTrees = new List<GameObject>();
+        //Destroy all trees and clear the list for a new round
+        DestroyTrees();
 
         if (currentTerrainMeshGO != null)
         {
+            //Get all suitable vertices for tree placement. I.e. those that are sticking mostly up (allowing 15 deg. angle deviation from world up vector of vertex normal)
             Stack<Vector3> niceObjectVertexPositions = TerrainGenerator.GetVerticesWithNormalAngleUpTreshold(currentTerrainMeshGO.GetComponent<MeshFilter>().mesh, 15f);
+            //Pop whole stack
             while (niceObjectVertexPositions.Count > 0)
             {
                 Vector3 possibleTreePos = niceObjectVertexPositions.Pop();
-                if (Random.Range(0f, 1f) < .01f)
+                //Don't place trees to all vertices, but with a random chance:
+                if (Random.Range(0f, 1f) < addPercentualRandomChance)
                 {
+                    //Instantiate tree object from Resources folder and randomize it a bit
                     GameObject tree = Instantiate<GameObject>(Resources.Load<GameObject>("Tree9_2"));
                     tree.transform.position = possibleTreePos;
                     tree.transform.Translate(Vector3.down * pushToGroundDistance, Space.Self);
                     tree.transform.Rotate(new Vector3(0, Random.Range(-90f, 90f), 0));
                     float randomUniformScale = Random.Range(.5f, 1f);
                     tree.transform.localScale = Vector3.one * randomUniformScale;
+                    //Add to trees list
                     GeneratedTrees.Add(tree);
                 }
             }
+        }
+    }
+
+    public void DestroyTrees()
+    {
+        if (GeneratedTrees.Count > 0)
+        {
+            //Destroy all trees and clear the list for a new round
+            GeneratedTrees.ForEach(treeObject => DestroyImmediate(treeObject));
+            GeneratedTrees = new List<GameObject>();
         }
     }
 
@@ -199,6 +214,11 @@ public class ApplicationController : SingletonMono<ApplicationController>
         //Terrain tools
         if (leftMouseDown && hitpoint.HasValue && currentTerrainMeshGO != null)
         {
+            //Use of any terrain tools simply destroys trees, because they don't adapt to mesh changes
+            //TODO: could be a bit more sophisticated :)
+            if (shiftDown || ctrlDown || altDown)
+                DestroyTrees();
+
             if (shiftDown) //Flatten mode
                 TerrainGenerator.PushPullVerticesBrush(hitpoint.Value, currentTerrainMeshGO, CurrentBrushSize, 0f, true);
             else if (ctrlDown) //Pull mode
