@@ -1,10 +1,12 @@
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using UniRx;
 using UnityEngine;
 using UnityEditor;
+using ExtensionMethods;
 
+/// <summary>
+/// Instantiate and initialize necessary objects.
+/// </summary>
 public class ApplicationController : SingletonMono<ApplicationController>
 {
     public CameraController CamController { get; private set; }
@@ -25,6 +27,8 @@ public class ApplicationController : SingletonMono<ApplicationController>
     private Vector3 mouseRightDownDelta = Vector3.zero;
     private bool mouseRightDrag = false;
     private Vector3? rightDownHitpoint;
+
+    private const int MAXTREES = 1000;
 
     [RuntimeInitializeOnLoadMethod]
     static void OnInit()
@@ -52,6 +56,9 @@ public class ApplicationController : SingletonMono<ApplicationController>
         FPSPlayer.gameObject.SetActive(false);        
     }
 
+    /// <summary>
+    /// Drop FPS player to terrain from screen to world pos.
+    /// </summary>
     public void DropFPSPlayerToTerrain(Vector3 screenPosition)
     {
         Vector3? terrainHitpoint = ScreenPointRaycast(screenPosition)?.point ?? null;
@@ -64,6 +71,9 @@ public class ApplicationController : SingletonMono<ApplicationController>
         }
     }
 
+    /// <summary>
+    /// Set FPS player inactive and second camera inactive.
+    /// </summary>
     public void DisableFPSPlayer()
     {
         FPSPlayer.FirstPersonCamera.gameObject.SetActive(false);
@@ -82,6 +92,18 @@ public class ApplicationController : SingletonMono<ApplicationController>
         CurrentBrushStrength = strength;
     }
 
+    /// <summary>
+    /// Deform a plane with noise to generate terrain and generate a preview texture from noise.
+    /// </summary>
+    /// <param name="size">Terrain plane size.</param>
+    /// <param name="height">Terrain max. height.</param>
+    /// <param name="noiseScale">Scale of noise.</param>
+    /// <param name="smooth">Faceted or smoothed look?</param>
+    /// <param name="plateau">Floor values to create plateau look.</param>
+    /// <param name="octaves">How many noise rounds are stacked.</param>
+    /// <param name="lacunarity">Frequency increases for each successive octave. How lakey (is that a word?).</param>
+    /// <param name="withOctaves">Use simple one round noise or complex version with octaves.</param>
+    /// <returns></returns>
     public Texture2D GenerateTerrainAndNoiseTexture(int size, float height, float noiseScale, bool smooth, bool plateau, int octaves = 4, float lacunarity = 3f, bool withOctaves = false)
     {
         //Destroy previous trees when generating new terrain        
@@ -113,6 +135,11 @@ public class ApplicationController : SingletonMono<ApplicationController>
         return texture;
     }
 
+    /// <summary>
+    /// Randomly add trees to generated terrain.
+    /// </summary>
+    /// <param name="addPercentualRandomChance">Chance to instantiate tree. Smaller value gives less trees, but generation caps to MAXTREES value.</param>
+    /// <param name="pushToGroundDistance">Distance to push a instantiated tree object locally down (to ground).</param>
     public void AddTrees(float addPercentualRandomChance, float pushToGroundDistance)
     {
         //Destroy all trees and clear the list for a new round
@@ -122,11 +149,17 @@ public class ApplicationController : SingletonMono<ApplicationController>
         {
             //Get all suitable vertices for tree placement. I.e. those that are sticking mostly up (allowing 15 deg. angle deviation from world up vector of vertex normal)
             Stack<Vector3> niceObjectVertexPositions = TerrainGenerator.GetVerticesWithNormalAngleUpTreshold(currentTerrainMeshGO.GetComponent<MeshFilter>().mesh, 15f);
-            //Pop whole stack
-            while (niceObjectVertexPositions.Count > 0)
+            
+            //Randomize stack order with Shuff extension method
+            niceObjectVertexPositions.Shuffle();
+
+            //Pop whole stack or till max trees reached
+            while (niceObjectVertexPositions.Count > 0 && GeneratedTrees.Count < MAXTREES)
             {
                 Vector3 possibleTreePos = niceObjectVertexPositions.Pop();
-                //Don't place trees to all vertices, but with a random chance:
+                //Don't place trees to all vertices, but skip with a random chance.
+                //May seem like repetition since stack if already randomized, but this
+                //makes both small and large environments look better and less crowded.
                 if (Random.Range(0f, 1f) < addPercentualRandomChance)
                 {
                     //Instantiate tree object from Resources folder and randomize it a bit
@@ -143,6 +176,9 @@ public class ApplicationController : SingletonMono<ApplicationController>
         }
     }
 
+    /// <summary>
+    /// Destroy all trees and clear the list for a new round.
+    /// </summary>
     public void DestroyTrees()
     {
         if (GeneratedTrees.Count > 0)
@@ -153,6 +189,9 @@ public class ApplicationController : SingletonMono<ApplicationController>
         }
     }
 
+    /// <summary>
+    /// Save generated terrain to asset database as Mesh asset that can be used in any project.
+    /// </summary>
     public void SaveTerrainAsset()
     {
 
@@ -240,7 +279,6 @@ public class ApplicationController : SingletonMono<ApplicationController>
             FPSPlayer.FirstPersonCamera.Cam.transform.position = CamController.Cam.transform.position;
             FPSPlayer.FirstPersonCamera.Cam.transform.rotation = CamController.Cam.transform.rotation;
         }
-
         #endregion
     }
 }
