@@ -13,6 +13,8 @@ public class ApplicationController : SingletonMono<ApplicationController>
     public GameObject currentTerrainMeshGO { get; private set; }
     public FirstPersonPlayer FPSPlayer { get; private set; }
 
+    public List<GameObject> GeneratedTrees = new List<GameObject>();
+
     private bool leftMouseDown = false;
     private bool shiftDown = false;
     private bool ctrlDown = false;
@@ -47,7 +49,7 @@ public class ApplicationController : SingletonMono<ApplicationController>
 
         //Instantiate FPS player
         FPSPlayer = Instantiate<FirstPersonPlayer>(Resources.Load<FirstPersonPlayer>("FirstPersonRig"));
-        FPSPlayer.gameObject.SetActive(false);
+        FPSPlayer.gameObject.SetActive(false);        
     }
 
     public void DropFPSPlayerToTerrain(Vector3 screenPosition)
@@ -105,7 +107,35 @@ public class ApplicationController : SingletonMono<ApplicationController>
         if (!smooth)
             TerrainGenerator.RemoveSharedVertices(currentTerrainMeshGO.GetComponent<MeshFilter>().sharedMesh);
 
+        
+        AddTrees(.1f, .6f);
+
         return texture;
+    }
+
+    public void AddTrees(float addPercentualRandomChance, float pushToGroundDistance)
+    {
+        GeneratedTrees.ForEach(treeObject => DestroyImmediate(treeObject));
+        GeneratedTrees = new List<GameObject>();
+
+        if (currentTerrainMeshGO != null)
+        {
+            Stack<Vector3> niceObjectVertexPositions = TerrainGenerator.GetVerticesWithNormalAngleUpTreshold(currentTerrainMeshGO.GetComponent<MeshFilter>().mesh, 15f);
+            while (niceObjectVertexPositions.Count > 0)
+            {
+                Vector3 possibleTreePos = niceObjectVertexPositions.Pop();
+                if (Random.Range(0f, 1f) < .01f)
+                {
+                    GameObject tree = Instantiate<GameObject>(Resources.Load<GameObject>("Tree9_2"));
+                    tree.transform.position = possibleTreePos;
+                    tree.transform.Translate(Vector3.down * pushToGroundDistance, Space.Self);
+                    tree.transform.Rotate(new Vector3(0, Random.Range(-90f, 90f), 0));
+                    float randomUniformScale = Random.Range(.5f, 1f);
+                    tree.transform.localScale = Vector3.one * randomUniformScale;
+                    GeneratedTrees.Add(tree);
+                }
+            }
+        }
     }
 
     public void SaveTerrainAsset()

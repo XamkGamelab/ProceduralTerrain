@@ -161,6 +161,22 @@ public static class TerrainGenerator
         RecalculateMesh(terrainMesh, terrainGameObject.GetComponent<MeshCollider>());
     }
 
+    public static Stack<Vector3> GetVerticesWithNormalAngleUpTreshold(Mesh mesh, float angleTreshold)
+    {
+        Vector3[] normals = mesh.normals;
+        Vector3[] vertices = mesh.vertices;
+        Stack<Vector3> angleFilteredVertices = new Stack<Vector3>();
+
+        for (int i = 0; i < vertices.Length; i++)
+        {
+            float angle = Vector3.Angle(normals[i], Vector3.up);
+            if (angle < angleTreshold)
+                angleFilteredVertices.Push(vertices[i]);
+        }
+
+        return angleFilteredVertices;
+    }
+
     public static void RemoveSharedVertices(Mesh mesh)
     {
         //Process the triangles
