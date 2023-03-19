@@ -1,20 +1,27 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// Class for generating simple and more complex perlin noise "maps".
+/// Noise methods return just 1d float arrays, but they are organized
+/// 2-dimensionally in order to create textures and terrain data from noise.
+/// Use helper methods FloatArrayToBWColorArray and ColorArrayToTexture to
+/// create color data and texture from generated noise.
+/// </summary>
 public static class Noise
 {
     /// <summary>
-    /// Generate new perlin noise texture.
+    /// Generate simple noise without octaves.
+    /// Basically this: https://docs.unity3d.com/ScriptReference/Mathf.PerlinNoise.html
     /// </summary>
-    /// <param name="width">Pixel width of the texture</param>
-    /// <param name="height">Pixel height of the texture</param>
-    /// <param name="xOrigin">The x origin of the sampled area in the plane.</param>
-    /// <param name="yOrigin">The y origin of the sampled area in the plane.</param>
-    /// <param name="scale">The number of cycles of the basic noise pattern that are repeated over the width and height of the texture.</param>
-    public static Color[] SimplePerlinNoise(int width, int height, int seed, float scale, Vector2 offset)
+    /// <param name="width">Color array width.</param>
+    /// <param name="height">Color array height.</param>
+    /// <param name="seed">Seed for random generation.</param>
+    /// <param name="scale">Noise scale.</param>
+    /// <param name="offset">Offset sampled area.</param>
+    /// <returns>1-dimensional float array with noise.</returns>
+    public static float[] SimplePerlinNoise(int width, int height, int seed, float scale, Vector2 offset)
     {
-        Color[]  colorArray = new Color[width * height];
+        float[] floatArray = new float[width * height];
 
         System.Random prng = new System.Random(seed);        
         float offsetX = prng.Next(-100000, 100000) + offset.x;
@@ -29,18 +36,33 @@ public static class Noise
                 float sampleX = offsetX + x / width * scale;
                 float sampleY = offsetY + y / height * scale;
                 float sample = Mathf.PerlinNoise(sampleX, sampleY);
-                colorArray[(int)y * width + (int)x] = new Color(sample, sample, sample);
+                floatArray[(int)y * width + (int)x] = sample;
                 x++;
             }
             y++;            
         }
-        return colorArray;
+        return floatArray;
     }
-    
-    public static Color[] PerlinNoiseWithOctaves(int width, int height, int seed, float scale, Vector2 offset, int octaves, float persistance, float lacunarity)
+
+    /// <summary>
+    /// This is a more complex perlin noise implementation, that mixes several "layers" of noise (octaves) to produce more
+    /// chaotic noise. 
+    /// This implementation is part of excellent series of tutorials by Sebastian Lange: https://www.youtube.com/playlist?list=PLFt_AvWsXl0eBW2EiBtl_sxmDtSgZBxB3 (E03: Octaves).
+    /// You can download the source codes for the tutorials from this repository: https://github.com/SebLague/Procedural-Landmass-Generation
+    /// Check out also a nice C++ library called libnoise. They have good theory break down and glossary explaining the coherent noise: https://libnoise.sourceforge.net/glossary/
+    /// </summary>
+    /// <param name="width">Color array width.</param>
+    /// <param name="height">Color array height.</param>
+    /// <param name="seed">Seed for random generation.</param>
+    /// <param name="scale">Noise scale.</param>
+    /// <param name="offset">Offset sampled area.</param>
+    /// <param name="octaves">One of the coherent-noise functions in a series of coherent-noise functions that are added together to form Perlin noise.</param>
+    /// <param name="persistance">A multiplier that determines how quickly the amplitudes diminish for each successive octave in a Perlin-noise function.</param>
+    /// <param name="lacunarity">A multiplier that determines how quickly the frequency increases for each successive octave in a Perlin-noise function. Id est: how much there are "lakes" (lat. lacuna).</param>
+    /// <returns>1-dimensional float array with noise.</returns>
+    public static float[] PerlinNoiseWithOctaves(int width, int height, int seed, float scale, Vector2 offset, int octaves, float persistance, float lacunarity)
     {
-        //float[,] noiseMap = new float[mapWidth, mapHeight];
-        Color[] colorArray = new Color[width * height];
+        float[] floatArray = new float[width * height];
 
         System.Random prng = new System.Random(seed);
         Vector2[] octaveOffsets = new Vector2[octaves];
@@ -84,16 +106,12 @@ public static class Noise
                     frequency *= lacunarity;
                 }
 
-                if (noiseHeight > maxNoiseHeight)
-                {
-                    maxNoiseHeight = noiseHeight;
-                }
-                else if (noiseHeight < minNoiseHeight)
-                {
+                if (noiseHeight > maxNoiseHeight)                
+                    maxNoiseHeight = noiseHeight;                
+                else if (noiseHeight < minNoiseHeight)                
                     minNoiseHeight = noiseHeight;
-                }
                 
-                colorArray[(int)y * width + (int)x] = new Color(noiseHeight, noiseHeight, noiseHeight);                
+                floatArray[(int)y * width + (int)x] = noiseHeight;
             }
         }
 
@@ -101,20 +119,50 @@ public static class Noise
         {
             for (int x = 0; x < width; x++)
             {
-                float inverseLerped = Mathf.InverseLerp(minNoiseHeight, maxNoiseHeight, colorArray[(int)y * width + (int)x].r);
-                colorArray[(int)y * width + (int)x] = new Color(inverseLerped, inverseLerped, inverseLerped);
-                //noiseMap[x, y] = Mathf.InverseLerp(minNoiseHeight, maxNoiseHeight, colorArray[(int)y * width + (int)x].r);
+                float inverseLerped = Mathf.InverseLerp(minNoiseHeight, maxNoiseHeight, floatArray[(int)y * width + (int)x]);
+                floatArray[(int)y * width + (int)x] = inverseLerped;
             }
         }
 
-        return colorArray;
+        return floatArray;
     }
 
+    /// <summary>
+    /// Convert array of floats to Color type array
+    /// </summary>
+    /// <param name="floatArray">Float array.</param>
+    /// <param name="width">Width of the "map"</param>
+    /// <param name="height">Height of the "map"</param>
+    /// <returns>Color array.</returns>
+    public static Color[] FloatArrayToBWColorArray(float[] floatArray, int width, int height)
+    {
+        Color[] colors = new Color[width * height];
+
+        //Float to color
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                float f = floatArray[y * width + x];
+                colors[y * width + x] = new Color(f, f, f);
+            }
+        }
+
+        return colors;
+    }
+
+    /// <summary>
+    /// Create Texture2D from color array.
+    /// </summary>
+    /// <param name="colorArray">Color array.</param>
+    /// <param name="textureWidth">Array and texture width.</param>
+    /// <param name="textureHeight">Array and texture height.</param>
+    /// <returns></returns>
     public static Texture2D ColorArrayToTexture(Color[] colorArray, int textureWidth, int textureHeight)
     {
         Texture2D texture = new Texture2D(textureWidth, textureHeight);
 
-        // Reverse each pixel in the color array to texture coordinates
+        // Each pixel in the color array to texture coordinates
         int y = 0;
         while (y < textureHeight)
         {

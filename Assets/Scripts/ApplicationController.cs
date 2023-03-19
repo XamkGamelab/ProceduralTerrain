@@ -11,6 +11,7 @@ public class ApplicationController : SingletonMono<ApplicationController>
     public float CurrentBrushSize { get; private set; } = 5f;
     public float CurrentBrushStrength { get; private set; } = 1f;
     public GameObject currentTerrainMeshGO { get; private set; }
+    public FirstPersonPlayer FPSPlayer { get; private set; }
 
     private bool leftMouseDown = false;
     private bool shiftDown = false;
@@ -23,7 +24,7 @@ public class ApplicationController : SingletonMono<ApplicationController>
     private bool mouseRightDrag = false;
     private Vector3? rightDownHitpoint;
 
-   [RuntimeInitializeOnLoadMethod]
+    [RuntimeInitializeOnLoadMethod]
     static void OnInit()
     {
         Instance.Init();
@@ -42,6 +43,30 @@ public class ApplicationController : SingletonMono<ApplicationController>
         InputController.Instance.ShiftDown.Subscribe(b => shiftDown = b);
         InputController.Instance.CtrlDown.Subscribe(b => ctrlDown = b);
         InputController.Instance.AltDown.Subscribe(b => altDown = b);
+        InputController.Instance.EscDown.Subscribe(b => { if (b) DisableFPSPlayer(); });
+
+        //Instantiate FPS player
+        FPSPlayer = Instantiate<FirstPersonPlayer>(Resources.Load<FirstPersonPlayer>("FirstPersonRig"));
+        FPSPlayer.gameObject.SetActive(false);
+    }
+
+    public void DropFPSPlayerToTerrain(Vector3 screenPosition)
+    {
+        Vector3? terrainHitpoint = ScreenPointRaycast(screenPosition)?.point ?? null;
+        if (terrainHitpoint.HasValue)
+        {
+            FPSPlayer.MouseLook.SetCursorLock(true);
+            FPSPlayer.FirstPersonCamera.gameObject.SetActive(true);
+            FPSPlayer.transform.position = terrainHitpoint.Value;
+            FPSPlayer.gameObject.SetActive(true);
+        }
+    }
+
+    public void DisableFPSPlayer()
+    {
+        FPSPlayer.FirstPersonCamera.gameObject.SetActive(false);
+        FPSPlayer.MouseLook.SetCursorLock(false);
+        FPSPlayer.gameObject.SetActive(false);
     }
 
     /// <summary>
@@ -61,13 +86,14 @@ public class ApplicationController : SingletonMono<ApplicationController>
         Vector2 offset = new Vector2(Random.Range(0f, 10f), Random.Range(0f, 10f));
         int seed = Random.Range(0, 10000);
 
-        Color[] colors;
+        float[] noise;
 
         if (withOctaves) //either generate more complex noise with octaves, persistence and lacunarity...
-            colors = Noise.PerlinNoiseWithOctaves(size, size, seed, noiseScale, offset, octaves, 0.5f, lacunarity);
+            noise = Noise.PerlinNoiseWithOctaves(size, size, seed, noiseScale, offset, octaves, 0.5f, lacunarity);
         else //...or simple (smooth) noise with single perlin noise sample
-            colors = Noise.SimplePerlinNoise(size, size, seed, noiseScale, offset);
-        
+            noise = Noise.SimplePerlinNoise(size, size, seed, noiseScale, offset);
+
+        Color[] colors = Noise.FloatArrayToBWColorArray(noise, size, size);
         Texture2D texture = Noise.ColorArrayToTexture(colors, size, size);
 
         if (currentTerrainMeshGO != null)
@@ -139,24 +165,31 @@ public class ApplicationController : SingletonMono<ApplicationController>
     private void FixedUpdate()
     {
         Vector3? hitpoint = ScreenPointRaycast(Input.mousePosition)?.point ?? null;
-        
-            //Terrain tools
-            if (leftMouseDown && hitpoint.HasValue && currentTerrainMeshGO != null)
-            {
-                if (shiftDown) //Flatten mode
-                    TerrainGenerator.PushPullVerticesBrush(hitpoint.Value, currentTerrainMeshGO, CurrentBrushSize, 0f, true);
-                else if (ctrlDown) //Pull mode
-                    TerrainGenerator.PushPullVerticesBrush(hitpoint.Value, currentTerrainMeshGO, CurrentBrushSize, CurrentBrushStrength, false);
-                else if (altDown) //Push mode
-                    TerrainGenerator.PushPullVerticesBrush(hitpoint.Value, currentTerrainMeshGO, CurrentBrushSize, -CurrentBrushStrength, false);
-            }
-            //Rotate camera
-            else if (mouseRightDrag && rightDownHitpoint.HasValue)
-            {
-                mouseRightDownDelta = Input.mousePosition - mouseRightDownPosition;
+
+        //Terrain tools
+        if (leftMouseDown && hitpoint.HasValue && currentTerrainMeshGO != null)
+        {
+            if (shiftDown) //Flatten mode
+                TerrainGenerator.PushPullVerticesBrush(hitpoint.Value, currentTerrainMeshGO, CurrentBrushSize, 0f, true);
+            else if (ctrlDown) //Pull mode
+                TerrainGenerator.PushPullVerticesBrush(hitpoint.Value, currentTerrainMeshGO, CurrentBrushSize, CurrentBrushStrength, false);
+            else if (altDown) //Push mode
+                TerrainGenerator.PushPullVerticesBrush(hitpoint.Value, currentTerrainMeshGO, CurrentBrushSize, -CurrentBrushStrength, false);
+        }
+        //Rotate camera
+        else if (mouseRightDrag && rightDownHitpoint.HasValue)
+        {
+            mouseRightDownDelta = Input.mousePosition - mouseRightDownPosition;
             CamController.RotateAroundWorldPoint(rightDownHitpoint.Value, .2f * mouseRightDownDelta.x + Mathf.Sign(mouseRightDownDelta.x) * 50f);
-            }
-        
+        }
+
+        //Keep fps cam in same pos/rot as top-down cam when FPS player not active.
+        //This gives nicer effect of zooming in (it's really fast lerp though) when dropping the player to terrain.
+        if (!FPSPlayer.gameObject.activeInHierarchy)
+        {
+            FPSPlayer.FirstPersonCamera.Cam.transform.position = CamController.Cam.transform.position;
+            FPSPlayer.FirstPersonCamera.Cam.transform.rotation = CamController.Cam.transform.rotation;
+        }
 
         #endregion
     }

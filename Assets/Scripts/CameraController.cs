@@ -5,6 +5,7 @@ using UniRx;
 
 public class CameraController : MonoBehaviour
 {
+    public Camera Cam { get; private set; }
     public float ZoomMinY = 10f;
     public float ZoomMaxY = 200f;
     public float ZoomSpeed = 60f;
@@ -14,7 +15,6 @@ public class CameraController : MonoBehaviour
 
     private Vector3 cameraNextPosition;
     
-    private Camera cam;
     private Vector3 mouseDownPosition = Vector3.zero;
     private Vector3 mouseDownCameraPosition = Vector3.zero;
     private Vector3 mouseDownDelta = Vector3.zero;
@@ -24,8 +24,8 @@ public class CameraController : MonoBehaviour
 
     public void Init(Camera camera)
     {
-        cam = camera;
-        cameraNextPosition = cam.transform.position;
+        Cam = camera;
+        cameraNextPosition = Cam.transform.position;
 
         //Subscribe to input
         InputController.Instance.MouseMiddleDown.Subscribe(b => HandleMouseMiddleDown(b)).AddTo(disposables);        
@@ -39,18 +39,18 @@ public class CameraController : MonoBehaviour
         if (b)
         {
             mouseDownPosition = Input.mousePosition;
-            mouseDownCameraPosition = cam.transform.position;
+            mouseDownCameraPosition = Cam.transform.position;
         }
         else
         {
             mouseDownDelta = Vector3.zero;
-            cameraNextPosition = cam.transform.TransformDirection(mouseDownCameraPosition);
+            cameraNextPosition = Cam.transform.TransformDirection(mouseDownCameraPosition);
         }
     }
 
     public void RotateAroundWorldPoint(Vector3 worldPoint, float speed)
     {
-        cam.transform.RotateAround(worldPoint, Vector3.up, speed * Time.deltaTime);
+        Cam.transform.RotateAround(worldPoint, Vector3.up, speed * Time.deltaTime);
     }
 
     private void Zoom(float _zoomDelta)
@@ -58,15 +58,15 @@ public class CameraController : MonoBehaviour
         if (_zoomDelta == 0)
             return;
 
-        cameraNextPosition = cam.transform.position + cam.transform.forward * _zoomDelta * ZoomSpeed;
+        cameraNextPosition = Cam.transform.position + Cam.transform.forward * _zoomDelta * ZoomSpeed;
         if (cameraNextPosition.y > ZoomMinY && cameraNextPosition.y < ZoomMaxY)
-            cam.transform.position = Vector3.Lerp(cam.transform.position, cameraNextPosition, Time.deltaTime * ZoomInterpolationSpeed);        
+            Cam.transform.position = Vector3.Lerp(Cam.transform.position, cameraNextPosition, Time.deltaTime * ZoomInterpolationSpeed);        
     }
     private void Pan(Vector3 _mouseDelta)
     {
-        cameraNextPosition = mouseDownCameraPosition + cam.transform.TransformDirection(new Vector3(_mouseDelta.x, 0, _mouseDelta.y)) * PanDragMultiplier;
-        cameraNextPosition.y = cam.transform.position.y;        
-        cam.transform.position = Vector3.Lerp(cam.transform.position, cameraNextPosition, Time.deltaTime * PanInterpolationSpeed);
+        cameraNextPosition = mouseDownCameraPosition + Cam.transform.TransformDirection(new Vector3(_mouseDelta.x, 0, _mouseDelta.y)) * PanDragMultiplier;
+        cameraNextPosition.y = Cam.transform.position.y;
+        Cam.transform.position = Vector3.Lerp(Cam.transform.position, cameraNextPosition, Time.deltaTime * PanInterpolationSpeed);
     }
 
     private void Update()
