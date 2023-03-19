@@ -1,6 +1,10 @@
 using UnityEngine;
 using UniRx;
 
+/// <summary>
+/// Bad FPS player implementation ripped from another project.
+/// </summary>
+/// 
 [RequireComponent(typeof (CharacterController))]
 public class FirstPersonPlayer : MonoBehaviour
 {

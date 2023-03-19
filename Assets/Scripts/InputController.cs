@@ -1,6 +1,9 @@
 ﻿using UnityEngine;
 using UniRx;
 
+/// <summary>
+/// Singleton class that filter Unity input to reactive properties.
+/// </summary>
 public class InputController : SingletonMono<InputController>
 {
     //Terrain drawing
@@ -59,11 +62,6 @@ public class InputController : SingletonMono<InputController>
 
         if (Input.GetButtonUp("Jump"))
             Jump.Value = false;
-
-        //Keys
-
-        //Run.Value = Input.GetKey(KeyCode.LeftShift);
-        Anykey.Value = Input.anyKey;
     }
     #endregion
 }

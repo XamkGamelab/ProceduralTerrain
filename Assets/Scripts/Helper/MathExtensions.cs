@@ -2,6 +2,13 @@
 
 public class MathExtensions {
 
+    /// <summary>
+    /// Clamp quaternion's x between min and max angles.
+    /// </summary>
+    /// <param name="_q">Quaternion to clamp.</param>
+    /// <param name="_minimumX">Minimum angle.</param>
+    /// <param name="_maximumX">Maximum angle.</param>
+    /// <returns>Clamped quaternion.</returns>
     public static Quaternion ClampRotationAroundXAxis(Quaternion _q, float _minimumX, float _maximumX)
     {
         _q.x /= _q.w;

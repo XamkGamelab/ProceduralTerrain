@@ -2,6 +2,10 @@ using System;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+
+/// <summary>
+/// Process Unity UI
+/// </summary>
 public class UIController : MonoBehaviour
 {
     //Buttons

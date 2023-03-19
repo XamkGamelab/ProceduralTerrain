@@ -1,6 +1,8 @@
 using UnityEngine;
-using System.Collections;
 
+/// <summary>
+/// Bad fps cam implementation ripped from another project.
+/// </summary>
 public class FirstAndThirdPersonCamera : MonoBehaviour
 {
     public Camera Cam => GetComponent<Camera>();

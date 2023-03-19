@@ -1,8 +1,9 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using UniRx;
 
+/// <summary>
+/// Camera controller for top-down free moving camera with pan, zoom and rotate.
+/// </summary>
 public class CameraController : MonoBehaviour
 {
     public Camera Cam { get; private set; }
@@ -48,11 +49,20 @@ public class CameraController : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Rotate cam transform around a world point
+    /// </summary>
+    /// <param name="worldPoint">Rotate around this point.</param>
+    /// <param name="speed">Rotation speed.</param>
     public void RotateAroundWorldPoint(Vector3 worldPoint, float speed)
     {
         Cam.transform.RotateAround(worldPoint, Vector3.up, speed * Time.deltaTime);
     }
 
+    /// <summary>
+    /// Zoom camera.
+    /// </summary>
+    /// <param name="_zoomDelta">Zoom delta value</param>
     private void Zoom(float _zoomDelta)
     {
         if (_zoomDelta == 0)
@@ -62,9 +72,14 @@ public class CameraController : MonoBehaviour
         if (cameraNextPosition.y > ZoomMinY && cameraNextPosition.y < ZoomMaxY)
             Cam.transform.position = Vector3.Lerp(Cam.transform.position, cameraNextPosition, Time.deltaTime * ZoomInterpolationSpeed);        
     }
-    private void Pan(Vector3 _mouseDelta)
+
+    /// <summary>
+    /// Pan camera xz in local space.
+    /// </summary>
+    /// <param name="moveDelta">Movement delta.</param>
+    private void Pan(Vector3 moveDelta)
     {
-        cameraNextPosition = mouseDownCameraPosition + Cam.transform.TransformDirection(new Vector3(_mouseDelta.x, 0, _mouseDelta.y)) * PanDragMultiplier;
+        cameraNextPosition = mouseDownCameraPosition + Cam.transform.TransformDirection(new Vector3(moveDelta.x, 0, moveDelta.y)) * PanDragMultiplier;
         cameraNextPosition.y = Cam.transform.position.y;
         Cam.transform.position = Vector3.Lerp(Cam.transform.position, cameraNextPosition, Time.deltaTime * PanInterpolationSpeed);
     }

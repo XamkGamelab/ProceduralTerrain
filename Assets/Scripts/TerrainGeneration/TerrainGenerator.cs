@@ -3,8 +3,16 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using System.Linq;
 
+/// <summary>
+/// Terrain generation related methods.
+/// </summary>
 public static class TerrainGenerator
 {
+    /// <summary>
+    /// Create a terrain plane from scratch.
+    /// </summary>
+    /// <param name="size">This is a square plane, so size is width and height of the plane.</param>
+    /// <returns>GeneratedTerrainPlane GameObject with added MeshRenderer, MeshFilter, Mesh and MeshCollider.</returns>
     public static GameObject CreatePlane(int size)
     {
         GameObject plane = new GameObject("GeneratedTerrainPlane");
@@ -88,7 +96,14 @@ public static class TerrainGenerator
         return plane;
     }
 
-    public static void DeformTerrainMesh(float heightScale, Color[] colorArray, bool plateauStyle, GameObject terrainGameObject)
+    /// <summary>
+    /// Deform existing plane using 1d-colorArray
+    /// </summary>
+    /// <param name="heightScale">Max height.</param>
+    /// <param name="noiseArray">Array of noise as 1d-array representing 2-dimensional plane verts</param>
+    /// <param name="plateauStyle">Floor heights to make 'plateau' look.</param>
+    /// <param name="terrainGameObject">Terrain plane to deform.</param>
+    public static void DeformTerrainMesh(float heightScale, float[] noiseArray, bool plateauStyle, GameObject terrainGameObject)
     {
         Mesh terrainMesh = terrainGameObject.GetComponent<MeshFilter>().mesh;
 
@@ -97,8 +112,8 @@ public static class TerrainGenerator
 
         for (int index = 0; index < newPosVertices.Length; index++)
         {
-            //pick pixel from color array red (r) channel. Multiple color value (0...1) by height scale
-            float newHeight = plateauStyle ? Mathf.Floor(colorArray[index].r * heightScale) : colorArray[index].r * heightScale;
+            //Multiple noise float value (0...1) by height scale
+            float newHeight = plateauStyle ? Mathf.Floor(noiseArray[index] * heightScale) : noiseArray[index] * heightScale;
 
             Vector3 newVertexPosition = new Vector3(vertices[index].x, terrainGameObject.transform.position.y + newHeight, vertices[index].z); ;
             newPosVertices[index] = newVertexPosition;
@@ -109,6 +124,11 @@ public static class TerrainGenerator
         RecalculateMesh(terrainMesh, terrainGameObject.GetComponent<MeshCollider>());
     }
 
+    /// <summary>
+    /// Update bounds, normals and tangents and MeshCollider
+    /// </summary>
+    /// <param name="mesh">Mesh to update.</param>
+    /// <param name="meshCollider">Update collider?</param>
     public static void RecalculateMesh(Mesh mesh, MeshCollider meshCollider = null)
     {
         //Update bounds, normals and tangents
@@ -120,6 +140,14 @@ public static class TerrainGenerator
             meshCollider.sharedMesh = mesh;
     }
 
+    /// <summary>
+    /// Brush tool to push/pull or level vertices. NOTE: This is *highly* non-optimal approacg!
+    /// </summary>
+    /// <param name="brushHitPoint">World point for brush center</param>
+    /// <param name="terrainGameObject">Terrain plane object.</param>
+    /// <param name="brushRadius">Radius of the brush.</param>
+    /// <param name="strength">Strength (push/pull max. 'depth')</param>
+    /// <param name="flatten">Use flatten (average) tool.</param>
     public static void PushPullVerticesBrush(Vector3 brushHitPoint, GameObject terrainGameObject, float brushRadius, float strength, bool flatten = false)
     {
         Mesh terrainMesh = terrainGameObject.GetComponent<MeshFilter>().mesh;
@@ -161,6 +189,12 @@ public static class TerrainGenerator
         RecalculateMesh(terrainMesh, terrainGameObject.GetComponent<MeshCollider>());
     }
 
+    /// <summary>
+    /// Find vertices that are (mostly) sticking up (normal towards world up).
+    /// </summary>
+    /// <param name="mesh">Mesh to find vertices from.</param>
+    /// <param name="angleTreshold">Allowed angle treshold deviating from world up.</param>
+    /// <returns></returns>
     public static Stack<Vector3> GetVerticesWithNormalAngleUpTreshold(Mesh mesh, float angleTreshold)
     {
         Vector3[] normals = mesh.normals;
@@ -177,6 +211,10 @@ public static class TerrainGenerator
         return angleFilteredVertices;
     }
 
+    /// <summary>
+    /// Prevent triangles from sharing vert indeces, thus removing the smoothing from mesh.
+    /// </summary>
+    /// <param name="mesh">Mesh to give 'faceted' look.</param>
     public static void RemoveSharedVertices(Mesh mesh)
     {
         //Process the triangles

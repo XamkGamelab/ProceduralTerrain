@@ -1,6 +1,9 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 
+/// <summary>
+/// Bad mouse look implementation ripped from another project.
+/// </summary>
 public class MouseLook : MonoBehaviour
 {
     //This is your Camera's transform

@@ -127,7 +127,7 @@ public class ApplicationController : SingletonMono<ApplicationController>
             GameObject.DestroyImmediate(currentTerrainMeshGO);
 
         currentTerrainMeshGO = CreateTerrainMesh(size - 1, Resources.Load<Material>("GroundTriplanar"));
-        TerrainGenerator.DeformTerrainMesh(height, colors, plateau, currentTerrainMeshGO);
+        TerrainGenerator.DeformTerrainMesh(height, noise, plateau, currentTerrainMeshGO);
 
         if (!smooth)
             TerrainGenerator.RemoveSharedVertices(currentTerrainMeshGO.GetComponent<MeshFilter>().sharedMesh);

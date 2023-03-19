@@ -4,6 +4,9 @@ using System;
 
 namespace ExtensionMethods
 {
+    /// <summary>
+    /// Generic extensions
+    /// </summary>
     public static class Extensions
     {
         static Random random;
