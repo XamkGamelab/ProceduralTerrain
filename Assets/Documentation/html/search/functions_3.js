@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['generateterrainandnoisetexture_42',['GenerateTerrainAndNoiseTexture',['../class_application_controller.html#af7e73a980d5ecccc81b69d6f0ff62842',1,'ApplicationController']]]
+  ['floatarraytobwcolorarray_64',['FloatArrayToBWColorArray',['../class_noise.html#adcd6a7dfa2688a2f7a2710852c71e442',1,'Noise']]]
 ];

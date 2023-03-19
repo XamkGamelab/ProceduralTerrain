@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['uicontroller_35',['UIController',['../class_u_i_controller.html',1,'']]]
+  ['noise_49',['Noise',['../class_noise.html',1,'']]]
 ];

@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['singletonmono_32',['SingletonMono',['../class_singleton_mono.html',1,'']]],
-  ['singletonmono_3c_20applicationcontroller_20_3e_33',['SingletonMono&lt; ApplicationController &gt;',['../class_singleton_mono.html',1,'']]],
-  ['singletonmono_3c_20inputcontroller_20_3e_34',['SingletonMono&lt; InputController &gt;',['../class_singleton_mono.html',1,'']]]
+  ['mathextensions_46',['MathExtensions',['../class_math_extensions.html',1,'']]],
+  ['mouselook_47',['MouseLook',['../class_mouse_look.html',1,'']]],
+  ['mousemovement_48',['MouseMovement',['../class_mouse_movement.html',1,'']]]
 ];

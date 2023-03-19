@@ -1,6 +1,5 @@
 var searchData=
 [
-  ['mathextensions_29',['MathExtensions',['../class_math_extensions.html',1,'']]],
-  ['mouselook_30',['MouseLook',['../class_mouse_look.html',1,'']]],
-  ['mousemovement_31',['MouseMovement',['../class_mouse_movement.html',1,'']]]
+  ['inputcontroller_44',['InputController',['../class_input_controller.html',1,'']]],
+  ['interpolation_45',['Interpolation',['../class_interpolation.html',1,'']]]
 ];
