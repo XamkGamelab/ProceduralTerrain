@@ -13,10 +13,12 @@ public class UIController : MonoBehaviour
     public Button ButtonGenerateFancierTerrain;
     public Button ButtonAddTrees;
     public Button ButtonSaveAsAsset;
+    public Button ButtonLoadAudioFromUrl;
     //TMP InputFields
     public TMP_InputField InputFieldSize;
     public TMP_InputField InputFieldHeight;
     public TMP_InputField InputNoiseScale;
+    public TMP_InputField InputAudioUrl;
     //Toggles
     public Toggle ToggleSmooth;
     public Toggle TogglePlateau;
@@ -27,6 +29,8 @@ public class UIController : MonoBehaviour
     public Slider SliderLacunarity;
     //Raw image for terrain texture
     public RawImage RawImageNoiseTexture;
+
+    private bool playToggle = false;
 
     #region Private
 
@@ -70,6 +74,23 @@ public class UIController : MonoBehaviour
         //Add trees (4% chance of all suitable vertices, push 60cm to ground)
         ButtonAddTrees.onClick.AddListener(() => ApplicationController.Instance.AddTrees(0.04f, .6f));
         ButtonSaveAsAsset.onClick.AddListener(HandleButtonSaveAsAsset);
+        ButtonLoadAudioFromUrl.onClick.AddListener(() => 
+        {
+            playToggle = !playToggle;
+
+            ButtonLoadAudioFromUrl.GetComponentInChildren<TMP_Text>().text = playToggle ? "stop" : "play";
+
+            if (playToggle)
+            {
+                ApplicationController.Instance.LoadAudioClipFromUrl(InputAudioUrl.text, AudioType.MPEG);                
+            }
+            else
+            {
+                ApplicationController.Instance.StopAudioSource();
+            }
+
+
+        });
 
         SliderBrushSize.onValueChanged.AddListener(value => ApplicationController.Instance.SetBrushSizeAndStrength(value, SliderBrushStrength.value));
         SliderBrushStrength.onValueChanged.AddListener(value => ApplicationController.Instance.SetBrushSizeAndStrength(SliderBrushSize.value, value));

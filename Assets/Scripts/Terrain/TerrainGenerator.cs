@@ -103,7 +103,7 @@ public static class TerrainGenerator
     /// <param name="noiseArray">Array of noise as 1d-array representing 2-dimensional plane verts</param>
     /// <param name="plateauStyle">Floor heights to make 'plateau' look.</param>
     /// <param name="terrainGameObject">Terrain plane to deform.</param>
-    public static void DeformTerrainMesh(float heightScale, float[] noiseArray, bool plateauStyle, GameObject terrainGameObject)
+    public static Vector3[] DeformTerrainMesh(float heightScale, float[] noiseArray, bool plateauStyle, GameObject terrainGameObject)
     {
         Mesh terrainMesh = terrainGameObject.GetComponent<MeshFilter>().mesh;
 
@@ -122,6 +122,8 @@ public static class TerrainGenerator
         //Set new vertex positions
         terrainMesh.vertices = newPosVertices;
         RecalculateMesh(terrainMesh, terrainGameObject.GetComponent<MeshCollider>());
+        
+        return terrainMesh.vertices;
     }
 
     /// <summary>

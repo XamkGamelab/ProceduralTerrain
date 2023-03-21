@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Collections.Generic;
 using UniRx;
 using UnityEngine;
@@ -30,6 +31,13 @@ public class ApplicationController : SingletonMono<ApplicationController>
 
     private const int MAXTREES = 1000;
 
+    private AudioSource audioSource;    
+    private System.IDisposable disposableWebRequest;
+    private Vector3[] origCurrentTerrainVertices;
+    
+    float[] spectrum = new float[64];
+    float currentSpec = 0f;
+
     [RuntimeInitializeOnLoadMethod]
     static void OnInit()
     {
@@ -39,6 +47,9 @@ public class ApplicationController : SingletonMono<ApplicationController>
     #region public
     public void Init()
     {
+        //Audio source for music
+         audioSource = new GameObject("MusicSource").AddComponent<AudioSource>();
+
         //Setup and initialize camera controller for main camera
         CamController = Camera.main.gameObject.AddComponent<CameraController>();
         CamController.Init(Camera.main);
@@ -53,7 +64,9 @@ public class ApplicationController : SingletonMono<ApplicationController>
 
         //Instantiate FPS player
         FPSPlayer = Instantiate<FirstPersonPlayer>(Resources.Load<FirstPersonPlayer>("FirstPersonRig"));
-        FPSPlayer.gameObject.SetActive(false);        
+        FPSPlayer.gameObject.SetActive(false);
+
+
     }
 
     /// <summary>
@@ -127,11 +140,14 @@ public class ApplicationController : SingletonMono<ApplicationController>
             GameObject.DestroyImmediate(currentTerrainMeshGO);
 
         currentTerrainMeshGO = CreateTerrainMesh(size - 1, Resources.Load<Material>("GroundTriplanar"));
-        TerrainGenerator.DeformTerrainMesh(height, noise, plateau, currentTerrainMeshGO);
+        var verts = TerrainGenerator.DeformTerrainMesh(height, noise, plateau, currentTerrainMeshGO);        
+        origCurrentTerrainVertices = verts.Select(a => new Vector3(a.x,a.y,a.z)).ToArray();
 
         if (!smooth)
             TerrainGenerator.RemoveSharedVertices(currentTerrainMeshGO.GetComponent<MeshFilter>().sharedMesh);
 
+        
+        
         return texture;
     }
 
@@ -149,7 +165,7 @@ public class ApplicationController : SingletonMono<ApplicationController>
         {
             //Get all suitable vertices for tree placement. I.e. those that are sticking mostly up (allowing 15 deg. angle deviation from world up vector of vertex normal)
             Stack<Vector3> niceObjectVertexPositions = TerrainGenerator.GetVerticesWithNormalAngleUpTreshold(currentTerrainMeshGO.GetComponent<MeshFilter>().mesh, 15f);
-            
+
             //Randomize stack order with Shuff extension method
             niceObjectVertexPositions.Shuffle();
 
@@ -206,6 +222,30 @@ public class ApplicationController : SingletonMono<ApplicationController>
         }
         else
             Debug.LogError("Generate terrain first!");
+    }
+
+    /// <summary>
+    /// Load AudioClip from url and play it with audioSource.
+    /// </summary>
+    /// <param name="url">Url for the audio.</param>
+    /// <param name="audioType">Type (mp3, ogg, etc.).</param>
+    public void LoadAudioClipFromUrl(string url, AudioType audioType)
+    {
+        if (audioSource.isPlaying)
+            audioSource.Stop();
+
+        disposableWebRequest?.Dispose();
+        // convert coroutine to IObservable
+        disposableWebRequest = Observable.FromCoroutine<AudioClip>((observer, cancellationToken) => WebRequestHelper.GetAudioClipWebRequest(url, audioType, observer, cancellationToken)).
+            Subscribe(loadedClip => audioSource.PlayOneShot(loadedClip));
+    }
+
+    /// <summary>
+    /// Stop audioSource.
+    /// </summary>
+    public void StopAudioSource()
+    {
+        audioSource.Stop();
     }
 
     #endregion
@@ -278,6 +318,25 @@ public class ApplicationController : SingletonMono<ApplicationController>
         {
             FPSPlayer.FirstPersonCamera.Cam.transform.position = CamController.Cam.transform.position;
             FPSPlayer.FirstPersonCamera.Cam.transform.rotation = CamController.Cam.transform.rotation;
+        }
+
+        //Animate terrain with audio, if audiosource is playing:
+        if (currentTerrainMeshGO != null && audioSource.isPlaying)
+        {
+            //Get spectrum sample (64) to spectrum array
+            AudioListener.GetSpectrumData(spectrum, 0, FFTWindow.Rectangular);            
+            //Lerp only 20% towards current to dampen the effect
+            currentSpec = Interpolation.Lerp(currentSpec, spectrum[0], .2f); //<-- dampen towards present
+
+            Mesh terrainMesh = currentTerrainMeshGO.GetComponent<MeshFilter>().mesh;
+            Vector3[] vertices = terrainMesh.vertices;
+
+            //Update verts y by multiplying originals
+            for (int i = 0; i < vertices.Length; i++)
+                vertices[i].y = origCurrentTerrainVertices[i].y * currentSpec;
+
+            terrainMesh.vertices = vertices;
+            TerrainGenerator.RecalculateMesh(terrainMesh, currentTerrainMeshGO.GetComponent<MeshCollider>());
         }
         #endregion
     }
